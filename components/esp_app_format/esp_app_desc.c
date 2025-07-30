@@ -116,6 +116,39 @@ int esp_app_get_elf_sha256(char* dst, size_t size)
     return n;
 }
 
+static uint8_t s_gnu_build_id[GNU_BUILD_ID_LEN];
+
+static void esp_app_format_init_gnu_build_id(void)
+{
+    extern const uint8_t __attribute__((weak)) __build_id_start[];
+    extern const uint8_t __attribute__((weak)) __build_id_end[];
+
+    const volatile uint8_t *flash_ptr = __build_id_start + 16;  // Skip the note header and "GNU\0".
+    const size_t build_id_len = __build_id_end - flash_ptr;
+
+    // An all-zero value distinguishes a missing linker build ID from an unpatched ESP-IDF.
+    if (&__build_id_start[0] != &__build_id_end[0] && build_id_len >= sizeof(s_gnu_build_id)) {
+        for (size_t i = 0; i < sizeof(s_gnu_build_id); ++i) {
+            s_gnu_build_id[i] = flash_ptr[i];
+        }
+    } else {
+        memset(s_gnu_build_id, 0, sizeof(s_gnu_build_id));
+    }
+}
+
+int IRAM_ATTR esp_get_gnu_build_id(uint8_t* dst, size_t size)
+{
+    if (dst == NULL || size == 0) {
+        return 0;
+    }
+
+    size_t n = MIN(size, sizeof(s_gnu_build_id));
+    for (size_t i = 0; i < n; ++i) {
+        dst[i] = s_gnu_build_id[i];
+    }
+    return n;
+}
+
 // startup function definition and execution does not exist on the Linux target
 // (TODO: IDF-9950)
 #if !CONFIG_IDF_TARGET_LINUX && !ESP_TEE_BUILD
@@ -123,6 +156,7 @@ ESP_SYSTEM_INIT_FN(init_show_app_info, CORE, BIT(0), 20)
 {
     // Load the current ELF SHA256
     esp_app_format_init_elf_sha256();
+    esp_app_format_init_gnu_build_id();
 
     // Display information about the current running image.
     if (LOG_LOCAL_LEVEL >= ESP_LOG_INFO) {

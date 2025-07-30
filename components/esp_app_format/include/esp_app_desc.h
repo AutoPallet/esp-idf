@@ -20,6 +20,9 @@ extern "C"
 
 #define ESP_APP_DESC_MAGIC_WORD (0xABCD5432)  /*!< The magic word for the esp_app_desc structure that is in DROM. */
 
+// NOTE(will): AutoPallet patch: include GNU build-id in coredump.
+#define GNU_BUILD_ID_LEN 20
+
 /**
  * @brief Description about application.
  */
@@ -77,6 +80,17 @@ FORCE_INLINE_ATTR char *esp_app_get_elf_sha256_str(void)
 {
     return app_elf_sha256_str;
 }
+
+/**
+ * @brief Copy the firmware GNU build ID into a caller-provided buffer.
+ *
+ * This function is safe to call from a panic handler while the flash cache is disabled.
+ *
+ * @param dst Destination buffer
+ * @param size Size of the destination buffer
+ * @return Number of bytes written
+ */
+int esp_get_gnu_build_id(uint8_t* dst, size_t size);
 
 #ifdef __cplusplus
 }

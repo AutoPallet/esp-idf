@@ -761,6 +761,26 @@ static int elf_write_core_dump_info(core_dump_elf_t *self)
         data_len += ret;
     }
 
+    // NOTE(will): AutoPallet patch: include GNU build-id in coredump.
+    uint8_t gnu_build_id[GNU_BUILD_ID_LEN];
+    esp_get_gnu_build_id(gnu_build_id, sizeof(gnu_build_id));
+
+    // TODO(will): this is only the first 8 bytes
+    ESP_COREDUMP_LOGI("Writing build-id to coredump: %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                      gnu_build_id[0], gnu_build_id[1], gnu_build_id[2], gnu_build_id[3],
+                      gnu_build_id[4], gnu_build_id[5], gnu_build_id[6], gnu_build_id[7],
+                      gnu_build_id[8], gnu_build_id[9], gnu_build_id[10], gnu_build_id[11],
+                      gnu_build_id[12], gnu_build_id[13], gnu_build_id[14], gnu_build_id[15],
+                      gnu_build_id[16], gnu_build_id[17], gnu_build_id[18], gnu_build_id[19]);
+
+    ret = elf_add_note(self,
+                       "GNU",
+                       3,
+                       gnu_build_id,
+                       sizeof(gnu_build_id));
+    ELF_CHECK_ERR((ret > 0), ret, "GNU build-id note write failed. Returned (%d).", ret);
+    data_len += ret;
+
     ret = elf_process_note_segment(self, data_len);
     ELF_CHECK_ERR((ret > 0), ret,
                   "EXTRA_INFO note segment processing failure, returned(%d).", ret);
