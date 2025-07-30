@@ -68,6 +68,7 @@ static inline char IRAM_ATTR to_hex_digit(unsigned val)
 __attribute__((constructor)) void esp_init_app_elf_sha256(void)
 {
     esp_app_get_elf_sha256(NULL, 0);
+    esp_get_gnu_build_id(NULL, 0);
 }
 
 /* The esp_app_desc.app_elf_sha256 should be possible to print in panic handler during cache is disabled.
@@ -100,4 +101,43 @@ int IRAM_ATTR esp_app_get_elf_sha256(char* dst, size_t size)
     }
     dst[2*n] = 0;
     return 2*n + 1;
+}
+
+// NOTE(will): AutoPallet patch: include GNU build-id in coredump.
+int IRAM_ATTR esp_get_gnu_build_id(uint8_t* dst, size_t size)
+{
+    // (These symbols come from a custom linkerscript.)
+    extern const uint8_t __attribute__((weak)) __build_id_start[];
+    extern const uint8_t __attribute__((weak)) __build_id_end[];
+
+    static uint8_t s_gnu_build_id[GNU_BUILD_ID_LEN];
+    static bool first_call = true;
+    if (first_call) {
+        first_call = false;
+
+        const volatile uint8_t *flash_ptr = __build_id_start + 16;  // skip hdr+"GNU\0"
+        const size_t build_id_len = __build_id_end - flash_ptr;
+
+        // If the build-id wasn't included by in the linkerscript, write all zeros instead. This is
+        // so we can distinguish between "linker flag not passed" and "ESP-IDF patch not applied".
+        if (&__build_id_start[0] != &__build_id_end[0] && build_id_len >= sizeof(s_gnu_build_id)) {
+            for (size_t i = 0; i < sizeof(s_gnu_build_id); ++i) {
+                s_gnu_build_id[i] = flash_ptr[i];
+            }
+        } else {
+            for (size_t i = 0; i < sizeof(s_gnu_build_id); ++i) {
+                s_gnu_build_id[i] = 0;
+            }
+        }
+    }
+    if (dst == NULL || size == 0) {
+        return 0;
+    }
+    // TODO(will): It's not clear to me that copying is even necessary here, but I'm modeling this
+    // after esp_app_get_elf_sha256 above as closely as possible.
+    size_t n = MIN(size, sizeof(s_gnu_build_id));
+    for (size_t i = 0; i < n; ++i) {
+        dst[i] = s_gnu_build_id[i];
+    }
+    return n;
 }
