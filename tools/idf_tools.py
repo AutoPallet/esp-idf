@@ -2069,6 +2069,15 @@ def get_constraints(idf_version, online=True):  # type: (str, bool) -> str
 
     for _ in range(DOWNLOAD_RETRY_COUNT):
         err = download(constraint_url, temp_path)
+
+        # AUTOPALLET PATCH
+        with open(temp_path, 'a') as f:
+            f.write("""
+# AutoPallet patch:
+pydantic<2.11
+pydantic-settings<2.11
+""")
+
         if not os.path.isfile(temp_path):
             warn('Download failure: {}'.format(err))
             warn('Failed to download {} to {}'.format(constraint_url, temp_path))
