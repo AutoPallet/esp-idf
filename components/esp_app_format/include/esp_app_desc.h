@@ -19,6 +19,9 @@ extern "C"
 
 #define ESP_APP_DESC_MAGIC_WORD (0xABCD5432)  /*!< The magic word for the esp_app_desc structure that is in DROM. */
 
+// NOTE(will): AutoPallet patch: include GNU build-id in coredump.
+#define GNU_BUILD_ID_LEN 20
+
 /**
  * @brief Description about application.
  */
@@ -56,6 +59,9 @@ const esp_app_desc_t *esp_app_get_description(void);
  * @return      Number of bytes written to dst (including null terminator)
  */
 int esp_app_get_elf_sha256(char* dst, size_t size);
+
+// NOTE(will): AutoPallet patch: include GNU build-id in coredump.
+int esp_get_gnu_build_id(uint8_t* dst, size_t size);
 
 #ifdef __cplusplus
 }

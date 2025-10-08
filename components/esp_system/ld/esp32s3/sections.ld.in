@@ -319,11 +319,24 @@ SECTIONS
     *(.rodata_desc .rodata_desc.*)               /* Should be the first.  App version info.        DO NOT PUT ANYTHING BEFORE IT! */
     *(.rodata_custom_desc .rodata_custom_desc.*) /* Should be the second. Custom app version info. DO NOT PUT ANYTHING BEFORE IT! */
 
+    /* NOTE(will): AutoPallet patch: include build-id in flash so that we can include in coredumps */
+    __build_id_start = .;
+    KEEP(*(.note.gnu.build-id))
+    __build_id_end = .;
+
     /* Create an empty gap within this section. Thanks to this, the end of this
      * section will match .flah.rodata's begin address. Thus, both sections
      * will be merged when creating the final bin image. */
     . = ALIGN(ALIGNOF(.flash.rodata));
   } >default_rodata_seg
+
+  /* NOTE(will): AutoPallet patch: include build-id in ELF so that readelf can read it */
+  .note.gnu.build-id (NOLOAD) : ALIGN(4)
+  {
+    KEEP(*(.note.gnu.build-id))
+
+    . = ALIGN(ALIGNOF(.flash.rodata));
+  } > default_rodata_seg
 
   .flash.rodata : ALIGN(0x10)
   {
