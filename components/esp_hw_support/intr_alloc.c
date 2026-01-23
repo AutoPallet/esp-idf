@@ -41,7 +41,7 @@ Define this to debug the choices made when allocating the interrupt. This leads 
 output within a critical region, which can lead to weird effects like e.g. the interrupt watchdog
 being triggered, that is why it is separate from the normal LOG* scheme.
 */
-// #define DEBUG_INT_ALLOC_DECISIONS
+#define DEBUG_INT_ALLOC_DECISIONS
 
 #ifdef DEBUG_INT_ALLOC_DECISIONS
 # define ALCHLOG(...) ESP_EARLY_LOGD(TAG, __VA_ARGS__)
