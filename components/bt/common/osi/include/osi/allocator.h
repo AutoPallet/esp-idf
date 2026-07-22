@@ -36,8 +36,8 @@ void osi_free_func(void *ptr);
 
 // Memory alloc function without print and assertion
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST
-#define osi_malloc_base(size)             heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
-#define osi_calloc_base(size)             heap_caps_calloc_prefer(1, size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
+#define osi_malloc_base(size)             heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
+#define osi_calloc_base(size)             heap_caps_calloc_prefer(1, size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
 #else
 #define osi_malloc_base(size)             malloc((size))
 #define osi_calloc_base(size)             calloc(1, (size))
@@ -77,7 +77,7 @@ do {                                                    \
     void *p;                                            \
                                                         \
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST              \
-    p = heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL); \
+    p = heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL); \
 #else                                                   \
     p = malloc((size));                                 \
 #endif /* #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST */ \
@@ -91,7 +91,7 @@ do {                                                    \
                                                         \
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST              \
         p = heap_caps_calloc_prefer(1, size, 2,         \
-            MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM,       \
+            MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT,          \
             MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);    \
 #else                                                   \
     p = calloc(1, (size));                              \

@@ -1706,8 +1706,8 @@ static inline uint32_t timeout_from_offered(uint32_t lease, uint32_t min)
  * internal memory then.
  */
 #if CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP
-#define mem_clib_malloc(size)    heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
-#define mem_clib_calloc(n, size) heap_caps_calloc_prefer(n, size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
+#define mem_clib_malloc(size)    heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
+#define mem_clib_calloc(n, size) heap_caps_calloc_prefer(n, size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
 #else /* !CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP */
 #define mem_clib_malloc malloc
 #define mem_clib_calloc calloc
