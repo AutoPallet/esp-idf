@@ -216,7 +216,7 @@ void *osi_malloc_func(size_t size)
 #if HEAP_MEMORY_DEBUG
     void *p;
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST
-    p = heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    p = heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     p = malloc(size);
 #endif /* #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST */
@@ -224,7 +224,7 @@ void *osi_malloc_func(size_t size)
     return p;
 #else
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST
-    return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     return malloc(size);
 #endif /* #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST */
@@ -236,7 +236,7 @@ void *osi_calloc_func(size_t size)
 #if HEAP_MEMORY_DEBUG
     void *p;
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST
-    p = heap_caps_calloc_prefer(1, size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    p = heap_caps_calloc_prefer(1, size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     p = calloc(1, size);
 #endif /* #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST */
@@ -244,7 +244,7 @@ void *osi_calloc_func(size_t size)
     return p;
 #else
 #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST
-    return heap_caps_calloc_prefer(1, size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    return heap_caps_calloc_prefer(1, size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     return calloc(1, size);
 #endif /* #if HEAP_ALLOCATION_FROM_SPIRAM_FIRST */

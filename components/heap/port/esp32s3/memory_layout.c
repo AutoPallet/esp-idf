@@ -52,7 +52,7 @@ const soc_memory_type_desc_t soc_memory_types[SOC_MEMORY_TYPE_NUM] = {
     // Type 4: IRAM
     [SOC_MEMORY_TYPE_IRAM] = { "IRAM", { MALLOC_CAP_EXEC | MALLOC_CAP_32BIT | MALLOC_CAP_INTERNAL, 0, 0 }, false, false},
     // Type 5: SPI SRAM data
-    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM", { MALLOC_CAP_SPIRAM | MALLOC_CAP_DEFAULT, 0, MALLOC_CAP_8BIT | MALLOC_CAP_32BIT}, false, false},
+    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM", { MALLOC_CAP_SPIRAM, 0, MALLOC_CAP_8BIT | MALLOC_CAP_32BIT}, false, false},
     // Type 6: DRAM which is not DMA accesible
     [SOC_MEMORY_TYPE_NODMARAM] = { "NON_DMA_DRAM", { MALLOC_CAP_8BIT | MALLOC_CAP_DEFAULT, MALLOC_CAP_INTERNAL | MALLOC_CAP_32BIT, 0 }, false, false},
     // Type 7: RTC Fast RAM

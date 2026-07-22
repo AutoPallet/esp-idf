@@ -69,7 +69,7 @@ static void IRAM_ATTR s_esp_dport_access_stall_other_cpu_end(void)
 IRAM_ATTR void *wifi_malloc( size_t size )
 {
 #if CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP
-    return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     return malloc(size);
 #endif
@@ -82,7 +82,7 @@ IRAM_ATTR void *wifi_malloc( size_t size )
 IRAM_ATTR void *wifi_realloc( void *ptr, size_t size )
 {
 #if CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP
-    return heap_caps_realloc_prefer(ptr, size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    return heap_caps_realloc_prefer(ptr, size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     return realloc(ptr, size);
 #endif
@@ -95,7 +95,7 @@ IRAM_ATTR void *wifi_realloc( void *ptr, size_t size )
 IRAM_ATTR void *wifi_calloc( size_t n, size_t size )
 {
 #if CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP
-    return heap_caps_calloc_prefer(n, size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
+    return heap_caps_calloc_prefer(n, size, 2, MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL);
 #else
     return calloc(n, size);
 #endif

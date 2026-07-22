@@ -20,7 +20,7 @@ void* ff_memalloc (    /* Returns pointer to the allocated memory block (null if
 )
 {
 #ifdef CONFIG_FATFS_ALLOC_PREFER_EXTRAM
-    return heap_caps_malloc_prefer(msize, 2, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM,
+    return heap_caps_malloc_prefer(msize, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
                                             MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
 #else
     return malloc(msize);
