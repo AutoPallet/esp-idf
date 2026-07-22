@@ -40,7 +40,6 @@ enum {
 /* COMMON_CAPS is the set of attributes common to all types of memory (except I/D cache data memory) on this chip */
 #define ESP32S3_MEM_COMMON_CAPS (MALLOC_CAP_DEFAULT | MALLOC_CAP_32BIT | MALLOC_CAP_8BIT)
 
-
 #ifdef CONFIG_ESP_SYSTEM_MEMPROT_FEATURE
 #define MALLOC_DIRAM_BASE_CAPS      ESP32S3_MEM_COMMON_CAPS | MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_RETENTION
 #define MALLOC_RTCRAM_BASE_CAPS     ESP32S3_MEM_COMMON_CAPS | MALLOC_CAP_INTERNAL
@@ -62,7 +61,7 @@ const soc_memory_type_desc_t soc_memory_types[SOC_MEMORY_TYPE_NUM] = {
     [SOC_MEMORY_TYPE_DIRAM]  = { "RAM",    { MALLOC_DIRAM_BASE_CAPS | MALLOC_CAP_SIMD,   0,                                                                                 0 }},
     [SOC_MEMORY_TYPE_DRAM]   = { "DRAM",   { 0,                                          ESP32S3_MEM_COMMON_CAPS | MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_SIMD,  0 }},
     [SOC_MEMORY_TYPE_IRAM]   = { "IRAM",   { MALLOC_CAP_EXEC,                            MALLOC_CAP_32BIT | MALLOC_CAP_INTERNAL,                                            0 }},
-    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM", { MALLOC_CAP_SPIRAM,                          0,                                                                                 ESP32S3_MEM_COMMON_CAPS | MALLOC_CAP_SIMD }},
+    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM", { MALLOC_CAP_SPIRAM,                          0,                                                                                 MALLOC_CAP_32BIT | MALLOC_CAP_8BIT | MALLOC_CAP_SIMD }},
     [SOC_MEMORY_TYPE_RTCRAM] = { "RTCRAM", { MALLOC_CAP_RTCRAM,                          0,                                                                                 MALLOC_RTCRAM_BASE_CAPS }},
 };
 

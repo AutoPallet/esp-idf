@@ -29,7 +29,6 @@ The prioritised capabilities work roughly like this:
 - Application mallocs (PIDx) will allocate IRAM first, if possible, then DRAM.
 - Most other malloc caps only fit in one region anyway.
 */
-
 enum {
     SOC_MEMORY_TYPE_DIRAM = 0,
     SOC_MEMORY_TYPE_SPIRAM = 1,
@@ -58,7 +57,7 @@ const soc_memory_type_desc_t soc_memory_types[] = {
     /*                       Mem Type Name | High Priority Matching     | Medium Priority Matching  | Low Priority Matching */
     [SOC_MEMORY_TYPE_DIRAM]  = { "RAM",    { MALLOC_DIRAM_BASE_CAPS,    0,                         0 }},
     //TODO, in fact, part of them support EDMA, to be supported.
-    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM", { MALLOC_CAP_SPIRAM,         0,                         ESP32S2_MEM_COMMON_CAPS }},
+    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM", { MALLOC_CAP_SPIRAM,         0,                         MALLOC_CAP_32BIT | MALLOC_CAP_8BIT }},
     [SOC_MEMORY_TYPE_RTCRAM] = { "RTCRAM", { MALLOC_CAP_RTCRAM,         0,                         MALLOC_RTCRAM_BASE_CAPS }},
 };
 
