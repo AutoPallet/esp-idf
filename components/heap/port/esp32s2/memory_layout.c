@@ -42,7 +42,7 @@ const soc_memory_type_desc_t soc_memory_types[] = {
     { "IRAM", { MALLOC_CAP_EXEC|MALLOC_CAP_32BIT|MALLOC_CAP_INTERNAL, 0, 0 }, false, false},
     //Type 4: SPI SRAM data
     //TODO, in fact, part of them support EDMA, to be supported.
-    { "SPIRAM", { MALLOC_CAP_SPIRAM|MALLOC_CAP_DEFAULT, 0, MALLOC_CAP_8BIT|MALLOC_CAP_32BIT}, false, false},
+    { "SPIRAM", { MALLOC_CAP_SPIRAM, 0, MALLOC_CAP_8BIT|MALLOC_CAP_32BIT}, false, false},
     //Type 5: RTC Fast RAM
     { "RTCRAM", { MALLOC_CAP_RTCRAM, MALLOC_CAP_8BIT|MALLOC_CAP_DEFAULT, MALLOC_CAP_INTERNAL|MALLOC_CAP_32BIT }, false, false},
 };
