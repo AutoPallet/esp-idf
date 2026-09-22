@@ -56,7 +56,7 @@ const soc_memory_type_desc_t soc_memory_types[SOC_MEMORY_TYPE_NUM] = {
     /*                           Mem Type Name   High Priority Matching                      Medium Priority Matching    Low Priority Matching */
     [SOC_MEMORY_TYPE_RAM]    = { "RAM",          { ESP32C5_MEM_COMMON_CAPS | MALLOC_CAP_DMA, 0,                         0 }},
     [SOC_MEMORY_TYPE_RTCRAM] = { "RTCRAM",       { MALLOC_CAP_RTCRAM,                        ESP32C5_MEM_COMMON_CAPS,   0 }},
-    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM",       { MALLOC_CAP_SPIRAM | MALLOC_CAP_DEFAULT, 0, MALLOC_CAP_8BIT | MALLOC_CAP_32BIT}},
+    [SOC_MEMORY_TYPE_SPIRAM] = { "SPIRAM",       { MALLOC_CAP_SPIRAM, 0, MALLOC_CAP_8BIT | MALLOC_CAP_32BIT}},
 };
 
 const size_t soc_memory_type_count = sizeof(soc_memory_types) / sizeof(soc_memory_type_desc_t);

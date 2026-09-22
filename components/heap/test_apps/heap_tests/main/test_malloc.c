@@ -16,6 +16,7 @@
 #include "freertos/queue.h"
 #include "unity.h"
 #include "esp_heap_caps.h"
+#include "esp_memory_utils.h"
 #include "esp_system.h"
 
 #include "sdkconfig.h"
@@ -66,39 +67,37 @@ TEST_CASE("Malloc/overwrite, then free all available DRAM", "[heap]")
 
 
 #if CONFIG_SPIRAM
-TEST_CASE("Check if default cap allocates in external memory in priority", "[heap][psram]")
+TEST_CASE("Default capabilities stay internal and explicit PSRAM remains available", "[heap][psram]")
 {
     const size_t alloc_size = 256;
     const uint32_t internal_cap = MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL;
-    const uint32_t external_cap = MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM;
+    const uint32_t external_cap = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
 
-    // get the free internal memory size
-    size_t free_internal_memory = heap_caps_get_free_size(internal_cap);
-    size_t free_external_memory = heap_caps_get_free_size(external_cap);
-
-    // allocate a small amount of memory using MALLOC_CAP_DEFAULT
+    // DEFAULT must never select PSRAM, including aligned requests.
     void * ptr = heap_caps_malloc(alloc_size, MALLOC_CAP_DEFAULT);
     TEST_ASSERT_NOT_NULL(ptr);
-
-    // check that external memory is used by making sure the free internal memory size is unchanged
-    // and the free external memory size has decreased by at least the size of the allocation
-    TEST_ASSERT(free_internal_memory == heap_caps_get_free_size(internal_cap));
-    TEST_ASSERT(free_external_memory >= heap_caps_get_free_size(external_cap) + alloc_size);
-
+    TEST_ASSERT(esp_ptr_internal(ptr));
     heap_caps_free(ptr);
-    free_internal_memory = heap_caps_get_free_size(internal_cap);
-    free_external_memory = heap_caps_get_free_size(external_cap);
+    ptr = heap_caps_aligned_alloc(32, alloc_size, MALLOC_CAP_DEFAULT);
+    TEST_ASSERT_NOT_NULL(ptr);
+    TEST_ASSERT(esp_ptr_internal(ptr));
+    TEST_ASSERT_EQUAL(0, (uintptr_t)ptr % 32);
+    heap_caps_free(ptr);
 
-    // only test malloc if CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL is equal to 0 since otherwise, allocations
-    // with size under the limit will be done internally.
-#if (CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL == 0)
-    // test again using malloc
+    // Region registration must not advertise DEFAULT on external heaps.
+    TEST_ASSERT_EQUAL(0, heap_caps_get_total_size(MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM));
+    TEST_ASSERT_GREATER_THAN(0, heap_caps_get_total_size(internal_cap));
+    ptr = heap_caps_aligned_alloc(32, alloc_size, external_cap);
+    TEST_ASSERT_NOT_NULL(ptr);
+    TEST_ASSERT(esp_ptr_external_ram(ptr));
+    TEST_ASSERT_EQUAL(0, (uintptr_t)ptr % 32);
+    heap_caps_free(ptr);
+
+#if CONFIG_SPIRAM_USE_MALLOC && (CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL == 0)
+    // Explicitly enabling external malloc preserves its separate policy.
     ptr = malloc(alloc_size);
     TEST_ASSERT_NOT_NULL(ptr);
-
-    TEST_ASSERT(free_internal_memory == heap_caps_get_free_size(internal_cap));
-    TEST_ASSERT(free_external_memory >= heap_caps_get_free_size(external_cap) + alloc_size);
-
+    TEST_ASSERT(esp_ptr_external_ram(ptr));
     heap_caps_free(ptr);
 #endif
 }

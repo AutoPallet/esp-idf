@@ -117,7 +117,7 @@ HEAP_IRAM_ATTR void *heap_caps_malloc_default( size_t size )
         if (size <= (size_t)malloc_alwaysinternal_limit) {
             r=heap_caps_malloc_base( size, MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL );
         } else {
-            r=heap_caps_malloc_base( size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM );
+            r=heap_caps_malloc_base( size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT );
         }
         if (r==NULL && size > 0) {
             //try again while being less picky
@@ -150,7 +150,7 @@ HEAP_IRAM_ATTR void *heap_caps_realloc_default( void *ptr, size_t size )
         if (size <= (size_t)malloc_alwaysinternal_limit) {
             r=heap_caps_realloc_base( ptr, size, MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
         } else {
-            r=heap_caps_realloc_base( ptr, size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM);
+            r=heap_caps_realloc_base( ptr, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         }
 
         if (r==NULL && size>0) {
@@ -521,7 +521,7 @@ HEAP_IRAM_ATTR void *heap_caps_aligned_alloc_default(size_t alignment, size_t si
     if (size <= (size_t)malloc_alwaysinternal_limit) {
         ret = heap_caps_aligned_alloc_base(alignment, size, MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
     } else {
-        ret = heap_caps_aligned_alloc_base(alignment, size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM);
+        ret = heap_caps_aligned_alloc_base(alignment, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     }
 
     if (ret != NULL) {
