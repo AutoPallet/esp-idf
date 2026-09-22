@@ -63,6 +63,16 @@ const esp_app_desc_t *esp_app_get_description(void);
  */
 int esp_app_get_elf_sha256(char* dst, size_t size);
 
+/** SHA-1 GNU build ID retained in the application image and coredumps. */
+#define GNU_BUILD_ID_LEN 20
+
+/**
+ * Copy up to size raw build-ID bytes from internal RAM. Safe with flash cache
+ * disabled after application startup; returns zeros when no ID was linked.
+ * Returns the number of bytes copied, or zero for a null/zero-length buffer.
+ */
+int esp_get_gnu_build_id(uint8_t *dst, size_t size);
+
 /** @cond */
 extern char app_elf_sha256_str[];
 /** @endcond */

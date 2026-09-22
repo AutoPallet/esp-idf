@@ -11,6 +11,34 @@
 #include "sdkconfig.h"
 
 #include "esp_log.h"
+#include "esp_attr.h"
+#include "gnu_build_id_private.h"
+
+// Cache the GNU build ID before a panic can disable flash access.
+static DRAM_ATTR uint8_t s_gnu_build_id[GNU_BUILD_ID_LEN];
+
+#if !CONFIG_IDF_TARGET_LINUX && !ESP_TEE_BUILD
+static void esp_app_format_init_gnu_build_id(void)
+{
+    extern const uint8_t __attribute__((weak)) __build_id_start[];
+    extern const uint8_t __attribute__((weak)) __build_id_end[];
+    const uintptr_t start = (uintptr_t)__build_id_start;
+    const uintptr_t end = (uintptr_t)__build_id_end;
+
+    // Undefined weak symbols are zero. Do not form pointers/subtract them until
+    // the full ELF note header, name and SHA-1 descriptor have been bounded.
+    if (start == 0 || end <= start || end - start < 16 + GNU_BUILD_ID_LEN) {
+        return;
+    }
+    esp_app_format_cache_build_id((const volatile uint8_t *)start, end - start,
+                                 s_gnu_build_id, sizeof(s_gnu_build_id));
+}
+#endif
+
+int IRAM_ATTR esp_get_gnu_build_id(uint8_t *dst, size_t size)
+{
+    return esp_app_format_copy_build_id(dst, size, s_gnu_build_id, sizeof(s_gnu_build_id));
+}
 
 // startup_internal.h is necessary for startup function definition, which does not exist on Linux (TODO: IDF-9950)
 #if !CONFIG_IDF_TARGET_LINUX && !ESP_TEE_BUILD
@@ -123,6 +151,7 @@ ESP_SYSTEM_INIT_FN(init_show_app_info, CORE, BIT(0), 20)
 {
     // Load the current ELF SHA256
     esp_app_format_init_elf_sha256();
+    esp_app_format_init_gnu_build_id();
 
     // Display information about the current running image.
     if (LOG_LOCAL_LEVEL >= ESP_LOG_INFO) {

@@ -726,6 +726,13 @@ static int elf_write_core_dump_info(core_dump_elf_t *self)
     ELF_CHECK_ERR((ret > 0), ret, "Version info note write failed. Returned (%d).", ret);
     data_len = ret;
 
+    // GNU build-ID note lets host tools select the matching ELF.
+    uint8_t gnu_build_id[GNU_BUILD_ID_LEN];
+    esp_get_gnu_build_id(gnu_build_id, sizeof(gnu_build_id));
+    ret = elf_add_note(self, "GNU", 3, gnu_build_id, sizeof(gnu_build_id));
+    ELF_CHECK_ERR((ret > 0), ret, "GNU build-ID note write failed. Returned (%d).", ret);
+    data_len += ret;
+
     uint32_t extra_info_len = esp_core_dump_get_extra_info(&extra_info);
     if (extra_info_len == 0) {
         ESP_COREDUMP_LOGE("Zero size extra info!");
