@@ -33,7 +33,10 @@ Heap Allocation and Free Function Hooks
 Users can use allocation and free detection hooks to be notified of every successful allocation and free operation:
 
 - Providing a definition of :cpp:func:`esp_heap_trace_alloc_hook` allows you to be notified of every successful memory allocation operation.
-- Providing a definition of :cpp:func:`esp_heap_trace_free_hook` allows you to be notified of every successful memory-free operations.
+- Providing a definition of :cpp:func:`esp_heap_trace_free_hook` allows you to be notified before memory is released by a free operation, while the allocation is still live.
+- Providing definitions of :cpp:func:`esp_heap_trace_realloc_begin_hook` and :cpp:func:`esp_heap_trace_realloc_end_hook` allows you to track same-heap realloc attempts. The begin hook returns a token identifying the attempt; the end hook receives that token and the result. A successful attempt is followed by the allocation hook. A failed attempt leaves the original allocation live and may be followed by malloc/copy/free hooks if a fallback succeeds.
+
+Realloc hooks run outside allocator locks. A moved allocation's old address can be reused by another core before the end hook runs, including by another realloc attempt. Track pending attempts by unique tokens, not just by addresses. Free hooks receive the original allocation pointer, including executable-memory aliases. Realloc with a NULL pointer or zero size uses only the allocation or free hook, respectively.
 
 This feature can be enabled by setting the :ref:`CONFIG_HEAP_USE_HOOKS` option. :cpp:func:`esp_heap_trace_alloc_hook` and :cpp:func:`esp_heap_trace_free_hook` have weak declarations (e.g., ``__attribute__((weak))``), thus it is not necessary to provide declarations for both hooks. Given that it is technically possible to allocate and free memory from an ISR (**though strongly discouraged from doing so**), the :cpp:func:`esp_heap_trace_alloc_hook` and :cpp:func:`esp_heap_trace_free_hook` can potentially be called from an ISR.
 

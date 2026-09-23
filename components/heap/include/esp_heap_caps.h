@@ -7,6 +7,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "multi_heap.h"
 #include <sdkconfig.h>
@@ -73,18 +74,50 @@ esp_err_t heap_caps_register_failed_alloc_callback(esp_alloc_failed_hook_t callb
  * @param ptr the allocated memory
  * @param size in bytes of the allocation
  * @param caps Bitwise OR of MALLOC_CAP_* flags indicating the type of memory allocated.
- * @note this hook is called on the same thread as the allocation, which may be within a low level operation.
- * You should refrain from doing heavy work, logging, flash writes, or any locking.
+ * @note this hook runs in the calling context, which may be an ISR or a low level operation.
+ * You should refrain from doing heavy work, logging, flash writes, or taking blocking locks.
  */
 __attribute__((weak)) HEAP_IRAM_ATTR void esp_heap_trace_alloc_hook(void* ptr, size_t size, uint32_t caps);
 
 /**
- * @brief callback called after every free
- * @param ptr the memory that was freed
- * @note this hook is called on the same thread as the allocation, which may be within a low level operation.
- * You should refrain from doing heavy work, logging, flash writes, or any locking.
+ * @brief callback called before memory is released by free
+ * @param ptr the original allocation pointer, including any executable-memory alias
+ * @note this hook runs in the calling context, which may be an ISR or a low level operation.
+ * You should refrain from doing heavy work, logging, flash writes, or taking blocking locks.
  */
 __attribute__((weak)) HEAP_IRAM_ATTR void esp_heap_trace_free_hook(void* ptr);
+
+/**
+ * @brief Callback called before a same-heap realloc attempt
+ *
+ * The old allocation is still live. A tracer can temporarily retire it until the
+ * matching end hook reports success or failure. Other cores may reuse its address
+ * before the end hook runs, so pending attempts must be distinguished by token.
+ * The hooks run outside allocator locks and may run from an ISR. Do not allocate,
+ * free, block, or log from either hook.
+ *
+ * Realloc with a NULL pointer, zero size, or a malloc/copy/free path uses the
+ * allocation and free hooks instead. A failed same-heap attempt can be followed
+ * by malloc/copy/free after the end hook has reported failure.
+ *
+ * @param ptr Original allocation pointer, without allocator metadata
+ * @return Observer-defined token identifying this attempt among outstanding attempts
+ */
+__attribute__((weak)) HEAP_IRAM_ATTR uint32_t esp_heap_trace_realloc_begin_hook(void *ptr);
+
+/**
+ * @brief Callback called after a same-heap realloc attempt
+ *
+ * On failure the old allocation remains live. On success its lifetime has ended;
+ * the allocation hook follows with the resulting pointer, even for in-place
+ * realloc. Do not dereference ptr on success or retire a new allocation that has
+ * reused its address. See esp_heap_trace_realloc_begin_hook() for restrictions.
+ *
+ * @param ptr Original allocation pointer passed to the begin hook
+ * @param token Token returned by the begin hook, or zero if it is undefined
+ * @param success Whether the same-heap attempt succeeded
+ */
+__attribute__((weak)) HEAP_IRAM_ATTR void esp_heap_trace_realloc_end_hook(void *ptr, uint32_t token, bool success);
 #endif
 
 /**

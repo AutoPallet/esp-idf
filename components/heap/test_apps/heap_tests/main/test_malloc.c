@@ -210,6 +210,23 @@ static const size_t expected_calls = 2; // one call for malloc/calloc and one ca
 static uint32_t *alloc_ptr = NULL;
 static bool test_success = false;
 static size_t counter = 0;
+static TaskHandle_t hook_test_task;
+static char hook_events[8];
+static size_t hook_event_count;
+static void *hook_old_ptr;
+static void *hook_alloc_ptr;
+static uint32_t hook_end_token;
+static bool hook_realloc_success;
+static size_t hook_free_size;
+static bool hook_check_free_size;
+
+static void record_hook_event(char event)
+{
+    if (hook_event_count < sizeof(hook_events)) {
+        hook_events[hook_event_count] = event;
+    }
+    hook_event_count++;
+}
 
 static void reset_static_variables(void) {
     test_success = false;
@@ -219,6 +236,10 @@ static void reset_static_variables(void) {
 
 void esp_heap_trace_alloc_hook(void* ptr, size_t size, uint32_t caps)
 {
+    if (hook_test_task != NULL && hook_test_task == xTaskGetCurrentTaskHandle()) {
+        hook_alloc_ptr = ptr;
+        record_hook_event('A');
+    }
     if (size == alloc_size) {
         counter++;
         if (counter == expected_calls) {
@@ -229,10 +250,108 @@ void esp_heap_trace_alloc_hook(void* ptr, size_t size, uint32_t caps)
 
 void esp_heap_trace_free_hook(void* ptr)
 {
+    if (hook_test_task != NULL && hook_test_task == xTaskGetCurrentTaskHandle()) {
+        hook_old_ptr = ptr;
+        if (hook_check_free_size) {
+            hook_free_size = heap_caps_get_allocated_size(ptr);
+        }
+        record_hook_event('F');
+    }
     if (alloc_ptr == ptr && counter == expected_calls) {
         test_success = true;
     }
 }
+
+uint32_t esp_heap_trace_realloc_begin_hook(void *ptr)
+{
+    if (hook_test_task != NULL && hook_test_task == xTaskGetCurrentTaskHandle()) {
+        hook_old_ptr = ptr;
+        record_hook_event('B');
+        return 0x13579bdf;
+    }
+    return 0;
+}
+
+void esp_heap_trace_realloc_end_hook(void *ptr, uint32_t token, bool success)
+{
+    if (hook_test_task != NULL && hook_test_task == xTaskGetCurrentTaskHandle()) {
+        hook_old_ptr = ptr;
+        hook_end_token = token;
+        hook_realloc_success = success;
+        record_hook_event('E');
+    }
+}
+
+TEST_CASE("heap hooks report realloc lifetime and free before release", "[heap]")
+{
+    void *ptr = heap_caps_malloc(128, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(ptr);
+    uintptr_t old_address = (uintptr_t)ptr;
+    hook_event_count = 0;
+    hook_test_task = xTaskGetCurrentTaskHandle();
+    void *resized = heap_caps_realloc(ptr, 64, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    hook_test_task = NULL;
+
+    TEST_ASSERT_NOT_NULL(resized);
+    TEST_ASSERT_EQUAL_UINT32(3, hook_event_count);
+    TEST_ASSERT_EQUAL_MEMORY("BEA", hook_events, 3);
+    TEST_ASSERT_EQUAL_HEX32(old_address, (uintptr_t)hook_old_ptr);
+    TEST_ASSERT_EQUAL_PTR(resized, hook_alloc_ptr);
+    TEST_ASSERT_EQUAL_HEX32(0x13579bdf, hook_end_token);
+    TEST_ASSERT_TRUE(hook_realloc_success);
+
+    old_address = (uintptr_t)resized;
+    hook_event_count = 0;
+    hook_check_free_size = true;
+    hook_test_task = xTaskGetCurrentTaskHandle();
+    heap_caps_free(resized);
+    hook_test_task = NULL;
+    hook_check_free_size = false;
+    TEST_ASSERT_EQUAL_UINT32(1, hook_event_count);
+    TEST_ASSERT_EQUAL_CHAR('F', hook_events[0]);
+    TEST_ASSERT_EQUAL_HEX32(old_address, (uintptr_t)hook_old_ptr);
+    TEST_ASSERT_GREATER_OR_EQUAL(64, hook_free_size);
+}
+
+TEST_CASE("heap hooks preserve allocation after failed realloc", "[heap]")
+{
+    // The base entry point does not invoke the configured allocation-failure abort.
+    extern void *heap_caps_realloc_base(void *ptr, size_t size, uint32_t caps);
+    const uint32_t caps = MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL;
+    uint32_t *ptr = heap_caps_malloc(64, caps);
+    TEST_ASSERT_NOT_NULL(ptr);
+    ptr[0] = 0x12345678;
+    size_t unavailable_size = heap_caps_get_total_size(caps);
+    hook_event_count = 0;
+    hook_test_task = xTaskGetCurrentTaskHandle();
+    void *resized = heap_caps_realloc_base(ptr, unavailable_size, caps);
+    hook_test_task = NULL;
+
+    TEST_ASSERT_NULL(resized);
+    TEST_ASSERT_EQUAL_UINT32(2, hook_event_count);
+    TEST_ASSERT_EQUAL_MEMORY("BE", hook_events, 2);
+    TEST_ASSERT_EQUAL_PTR(ptr, hook_old_ptr);
+    TEST_ASSERT_EQUAL_HEX32(0x13579bdf, hook_end_token);
+    TEST_ASSERT_FALSE(hook_realloc_success);
+    TEST_ASSERT_EQUAL_HEX32(0x12345678, ptr[0]);
+    heap_caps_free(ptr);
+}
+
+#if !(CONFIG_ESP_SYSTEM_MEMPROT_FEATURE || CONFIG_ESP_SYSTEM_PMP_IDRAM_SPLIT)
+TEST_CASE("heap free hook preserves executable allocation address", "[heap]")
+{
+    void *ptr = heap_caps_malloc(64, MALLOC_CAP_EXEC);
+    TEST_ASSERT_NOT_NULL(ptr);
+    uintptr_t old_address = (uintptr_t)ptr;
+    hook_event_count = 0;
+    hook_test_task = xTaskGetCurrentTaskHandle();
+    heap_caps_free(ptr);
+    hook_test_task = NULL;
+    TEST_ASSERT_EQUAL_UINT32(1, hook_event_count);
+    TEST_ASSERT_EQUAL_CHAR('F', hook_events[0]);
+    TEST_ASSERT_EQUAL_HEX32(old_address, (uintptr_t)hook_old_ptr);
+}
+#endif
 
 TEST_CASE("test allocation and free function hooks", "[heap]")
 {

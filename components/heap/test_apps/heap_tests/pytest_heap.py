@@ -63,7 +63,15 @@ def test_heap(dut: Dut) -> None:
 )
 @pytest.mark.parametrize('config', ['misc_options'])
 def test_heap_misc_options(dut: Dut) -> None:
-    dut.run_all_single_board_cases(name=['IRAM_8BIT capability test', 'test allocation and free function hooks'])
+    dut.run_all_single_board_cases(
+        name=[
+            'IRAM_8BIT capability test',
+            'test allocation and free function hooks',
+            'heap hooks report realloc lifetime and free before release',
+            'heap hooks preserve allocation after failed realloc',
+            'heap free hook preserves executable allocation address',
+        ]
+    )
 
     dut.expect_exact("Enter next test, or 'enter' to see menu")
     dut.write('"When enabled, allocation operation failure generates an abort"')

@@ -67,6 +67,10 @@ HEAP_IRAM_ATTR void heap_caps_free( void *ptr)
         return;
     }
 
+#ifdef CONFIG_HEAP_USE_HOOKS
+    void *original_ptr = ptr;
+#endif
+
     if ((!esp_dram_match_iram() && esp_ptr_in_diram_iram(ptr)) ||
         (!esp_rtc_dram_match_rtc_iram() && esp_ptr_in_rtc_iram_fast(ptr))) {
         //Memory allocated here is actually allocated in the DRAM alias region and
@@ -83,9 +87,8 @@ HEAP_IRAM_ATTR void heap_caps_free( void *ptr)
     heap_caps_update_per_task_info_free(heap, ptr);
 #endif
 
+    CALL_HOOK(esp_heap_trace_free_hook, original_ptr);
     multi_heap_free(heap->heap, block_owner_ptr);
-
-    CALL_HOOK(esp_heap_trace_free_hook, ptr);
 }
 
 HEAP_IRAM_ATTR static inline void *aligned_or_unaligned_alloc(multi_heap_handle_t heap, size_t size, size_t alignment, size_t offset) {
@@ -272,7 +275,14 @@ HEAP_IRAM_ATTR NOINLINE_ATTR void *heap_caps_realloc_base( void *ptr, size_t siz
         TaskHandle_t old_task = MULTI_HEAP_GET_BLOCK_OWNER(ptr);
 #endif
 
+#ifdef CONFIG_HEAP_USE_HOOKS
+        uint32_t realloc_token = 0;
+        if (esp_heap_trace_realloc_begin_hook != NULL) {
+            realloc_token = esp_heap_trace_realloc_begin_hook(MULTI_HEAP_ADD_BLOCK_OWNER_OFFSET(ptr));
+        }
+#endif
         void *r = multi_heap_realloc(heap->heap, ptr, MULTI_HEAP_ADD_BLOCK_OWNER_SIZE(size));
+        CALL_HOOK(esp_heap_trace_realloc_end_hook, MULTI_HEAP_ADD_BLOCK_OWNER_OFFSET(ptr), realloc_token, r != NULL);
         if (r != NULL) {
             MULTI_HEAP_SET_BLOCK_OWNER(r);
 
