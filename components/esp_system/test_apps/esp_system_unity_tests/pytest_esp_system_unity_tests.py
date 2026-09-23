@@ -69,7 +69,8 @@ def test_stack_smash_protection(dut: Dut) -> None:
 @idf_parametrize('config', ['framepointer'], indirect=['config'])
 @idf_parametrize('target', ['esp32c3'], indirect=['target'])
 def test_frame_pointer_backtracing(dut: Dut) -> None:
-    dut.expect_exact('Press ENTER to see the list of tests')
+    dut.run_all_single_board_cases(group='frame-pointer')
+    dut.expect_exact("Enter next test, or 'enter' to see menu")
     dut.write('"Backtrace detects corrupted frames"')
     dut.expect_exact('Guru Meditation Error')
     # The backtrace should be composed of a single entry

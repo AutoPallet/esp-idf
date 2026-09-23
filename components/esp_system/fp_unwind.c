@@ -32,13 +32,20 @@ void __attribute__((weak)) esp_fp_generated_step(uint32_t pc, uint32_t sp)
 }
 
 /**
- * @brief Check if the given pointer is a data pointer that can be dereferenced
+ * @brief Check that both words preceding the frame pointer can be read
  *
- * @param ptr Data pointer to check
+ * @param frame Frame pointer to check
  */
-static inline bool esp_fp_ptr_is_data(void* ptr)
+static inline bool esp_fp_record_is_valid(uint32_t frame)
 {
-    return esp_ptr_in_dram(ptr) || esp_ptr_external_ram(ptr);
+    if ((frame & (sizeof(uint32_t) - 1)) != 0 || frame < 2 * sizeof(uint32_t)) {
+        return false;
+    }
+
+    const void *first = (void *)(frame - 2 * sizeof(uint32_t));
+    const void *last = (void *)(frame - 1);
+    return (esp_ptr_in_dram(first) && esp_ptr_in_dram(last)) ||
+           (esp_ptr_external_ram(first) && esp_ptr_external_ram(last));
 }
 
 /**
@@ -69,7 +76,7 @@ uint32_t ESP_SYSTEM_IRAM_ATTR esp_fp_get_callers(uint32_t frame, void** callers,
      * with frame pointer) or the pointer we retrieved is not in RAM (binary libraries
      * not compiled with frame pointer configuration, which means what is stored in the register is not a valid pointer)
      */
-    while (depth > 0 && esp_fp_ptr_is_data(fp) && !esp_ptr_in_rom((void *) pc)) {
+    while (depth > 0 && esp_fp_record_is_valid((uint32_t)fp) && !esp_ptr_in_rom((void *) pc)) {
         /* Dereference the RA register from the frame pointer and store it in PC */
         pc = fp[RA_INDEX_IN_FP];
         sp = fp[SP_INDEX_IN_FP];

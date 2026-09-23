@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 /*
- * Note: Currently, the backtraces must still be checked manually. Therefore,
- * these test cases should always pass.
- * Todo: Automate the checking of backtrace addresses.
+ * Printed addresses in the panic backtrace tests must be checked manually.
  */
 #include <stdlib.h>
 #include "unity.h"
@@ -148,6 +146,84 @@ TEST_CASE("Test esp_backtrace_print_all_tasks()", "[esp_system]")
 #endif // CONFIG_IDF_TARGET_ARCH_XTENSA
 
 #if CONFIG_ESP_SYSTEM_USE_FRAME_POINTER
+
+#include "esp_private/fp_unwind.h"
+#include "soc/soc.h"
+
+static void *volatile fp_test_allocation;
+
+static uint32_t __attribute__((noinline, used)) fp_capture_callers(void **callers)
+{
+    fp_test_allocation = malloc(16);
+    free(fp_test_allocation);
+    uint32_t frame;
+    asm volatile("mv %0, s0" : "=r"(frame));
+    uint32_t written = esp_fp_get_callers(frame, callers, NULL, 4);
+    asm volatile("" : "+r"(written));
+    return written;
+}
+
+static uint32_t __attribute__((naked, no_stack_protector)) fp_opaque_caller(uint32_t frame, void **callers)
+{
+    asm volatile(
+        "addi sp, sp, -16\n"
+        "sw ra, 12(sp)\n"
+        "sw s0, 8(sp)\n"
+        "mv s0, a0\n"
+        "mv a0, a1\n"
+        "call fp_capture_callers\n"
+        "lw s0, 8(sp)\n"
+        "lw ra, 12(sp)\n"
+        "addi sp, sp, 16\n"
+        "ret\n"
+    );
+}
+
+TEST_CASE("Frame unwinding rejects incomplete and unaligned records", "[esp_system][frame-pointer]")
+{
+    const uint32_t invalid_frames[] = {
+        0, 1, 7,
+        SOC_DRAM_LOW, SOC_DRAM_LOW + 4, SOC_DRAM_LOW + 7, SOC_DRAM_LOW + 0x101,
+        SOC_DRAM_HIGH + 4, SOC_DRAM_HIGH + 8,
+    };
+    for (size_t i = 0; i < sizeof(invalid_frames) / sizeof(invalid_frames[0]); ++i) {
+        void *callers[4] = { (void *)1, (void *)1, (void *)1, (void *)1 };
+        TEST_ASSERT_EQUAL_UINT32(0, esp_fp_get_callers(invalid_frames[i], callers, NULL, 4));
+        TEST_ASSERT_EQUAL_PTR((void *)1, callers[0]);
+
+        TEST_ASSERT_EQUAL_UINT32(1, fp_opaque_caller(invalid_frames[i], callers));
+        TEST_ASSERT_NOT_NULL(callers[0]);
+        TEST_ASSERT_EQUAL_PTR((void *)1, callers[1]);
+    }
+}
+
+TEST_CASE("Frame unwinding preserves valid chains and depth limits", "[esp_system][frame-pointer]")
+{
+    uint32_t frames[4] = { 0, (uint32_t)fp_capture_callers, 0, (uint32_t)fp_opaque_caller };
+    void *callers[3] = { NULL };
+    void *stacks[3] = { NULL };
+    frames[2] = (uint32_t)&frames[2];
+    TEST_ASSERT_EQUAL_UINT32(2, esp_fp_get_callers((uint32_t)&frames[4], callers, stacks, 3));
+    TEST_ASSERT_EQUAL_PTR(fp_opaque_caller, callers[0]);
+    TEST_ASSERT_EQUAL_PTR(fp_capture_callers, callers[1]);
+    TEST_ASSERT_EQUAL_PTR(&frames[2], stacks[0]);
+    TEST_ASSERT_NULL(stacks[1]);
+    TEST_ASSERT_NULL(callers[2]);
+
+    callers[0] = NULL;
+    TEST_ASSERT_EQUAL_UINT32(0, esp_fp_get_callers((uint32_t)&frames[4], callers, NULL, 0));
+    TEST_ASSERT_NULL(callers[0]);
+    TEST_ASSERT_EQUAL_UINT32(0, esp_fp_get_callers((uint32_t)&frames[4], NULL, NULL, 3));
+    TEST_ASSERT_EQUAL_UINT32(1, esp_fp_get_callers((uint32_t)&frames[4], NULL, stacks, 1));
+    TEST_ASSERT_EQUAL_PTR(&frames[2], stacks[0]);
+
+    frames[0] = (uint32_t)&frames[4];
+    TEST_ASSERT_EQUAL_UINT32(3, esp_fp_get_callers((uint32_t)&frames[4], callers, NULL, 3));
+
+    frames[3] = (uint32_t)esp_rom_delay_us;
+    TEST_ASSERT_EQUAL_UINT32(1, esp_fp_get_callers((uint32_t)&frames[4], callers, NULL, 3));
+    TEST_ASSERT_EQUAL_PTR(esp_rom_delay_us, callers[0]);
+}
 
 void my_putc(char c)
 {
