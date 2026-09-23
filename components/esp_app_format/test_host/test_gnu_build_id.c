@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2026 AutoPallet
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* Standalone host test: cc -std=c11 -Wall -Wextra -Werror test_gnu_build_id.c -o test_gnu_build_id */
 #include <assert.h>
 #include <string.h>

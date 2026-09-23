@@ -25,8 +25,7 @@ static void esp_app_format_init_gnu_build_id(void)
     const uintptr_t start = (uintptr_t)__build_id_start;
     const uintptr_t end = (uintptr_t)__build_id_end;
 
-    // Undefined weak symbols are zero. Do not form pointers/subtract them until
-    // the full ELF note header, name and SHA-1 descriptor have been bounded.
+    // Weak symbols may be null; validate the complete note range before reading flash.
     if (start == 0 || end <= start || end - start < 16 + GNU_BUILD_ID_LEN) {
         return;
     }

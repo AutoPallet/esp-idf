@@ -67,9 +67,15 @@ int esp_app_get_elf_sha256(char* dst, size_t size);
 #define GNU_BUILD_ID_LEN 20
 
 /**
- * Copy up to size raw build-ID bytes from internal RAM. Safe with flash cache
- * disabled after application startup; returns zeros when no ID was linked.
- * Returns the number of bytes copied, or zero for a null/zero-length buffer.
+ * @brief Copy the raw GNU build ID from internal RAM without a null terminator.
+ *
+ * Copies min(size, GNU_BUILD_ID_LEN) bytes, or zeros when no ID was linked.
+ * Safe with flash cache disabled after application startup if dst points to
+ * writable internal RAM.
+ *
+ * @param dst Destination buffer; must be writable for the number of bytes copied.
+ * @param size Destination buffer size in bytes.
+ * @return Number of bytes copied, or zero if dst is NULL or size is zero.
  */
 int esp_get_gnu_build_id(uint8_t *dst, size_t size);
 
